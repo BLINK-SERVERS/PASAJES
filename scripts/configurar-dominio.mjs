@@ -229,8 +229,11 @@ async function fijarDominio(actual) {
     method: "PUT",
     body: JSON.stringify({ cname: HOST, build_type: actual.build_type }),
   });
-  if (!respuesta.datos) throw new ErrorDeUso(`No pude fijar el dominio: HTTP ${respuesta.estado}`);
-  return respuesta.datos;
+  // Pages responde 204 sin cuerpo cuando aplica el cambio.
+  if (respuesta.estado < 200 || respuesta.estado >= 300) {
+    throw new ErrorDeUso(`No pude fijar el dominio: HTTP ${respuesta.estado} ${respuesta.datos?.message ?? ""}`);
+  }
+  return respuesta.datos ?? { ...actual, cname: HOST };
 }
 
 // ------------------------------------------------------------- 3. Propagación
@@ -277,7 +280,9 @@ async function forzarHttps(actual) {
     method: "PUT",
     body: JSON.stringify({ https_enforced: true }),
   });
-  if (!respuesta.datos?.html_url) throw new ErrorDeUso(`No pude forzar HTTPS: HTTP ${respuesta.estado}`);
+  if (respuesta.estado < 200 || respuesta.estado >= 300) {
+    throw new ErrorDeUso(`No pude forzar HTTPS: HTTP ${respuesta.estado} ${respuesta.datos?.message ?? ""}`);
+  }
 }
 
 // El sitio en la raíz del dominio necesita rutas absolutas desde la raíz;
